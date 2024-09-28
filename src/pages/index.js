@@ -1,8 +1,9 @@
 import Image from "next/image";
 import localFont from "next/font/local";
-import { Input } from '../components/ui/input';
-import { Button } from '../components/ui/button';
-import { useState } from 'react';
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { DotSelector } from "../components/ui/dotSelector";
+import { useEffect, useState } from "react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -16,154 +17,283 @@ const geistMono = localFont({
 });
 
 export default function Home() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [filteredItems, setFilteredItems] = useState([]);
+  const [filteredGuns, setFilteredGuns] = useState([]);
+  const [budget, setBudget] = useState("medium");
   const [loading, setLoading] = useState(false);
+  const [filteredSkins, setFilteredSkins] = useState([]);
+  const [availableSkins, setAvailableSkins] = useState([]);
+
+  useEffect(() => {
+    const fetchSkins = async () => {
+      try {
+        const response = await fetch("https://localhost:7233/api/Collection");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const result = await response.json();
+        const allGuns = result.data.flatMap((item) => item.guns);
+        setAvailableSkins(allGuns);
+      } catch (error) {
+        console.error("Erro ao buscar skins:", error);
+      }
+    };
+
+    fetchSkins();
+  }, []);
 
   const handleSearch = async () => {
-    setShowResults(true); // Mostra resultados imediatamente
-    setLoading(true); // Define loading como true
+    setShowResults(true);
+    setLoading(true);
     try {
-      const response = await fetch(`https://localhost:7233/api/Collection?search=${encodeURIComponent(query)}`);
-    
+      const response = await fetch(
+        `https://localhost:7233/api/Collection?search=${encodeURIComponent(
+          query
+        )}&budget=${budget}`
+      );
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error("Network response was not ok");
       }
-    
-      const result = await response.json(); // Extrai a resposta como JSON
-    
-      // Verifica se a resposta foi bem-sucedida
+
+      const result = await response.json();
+
       if (result.success) {
-        // Divide a query em palavras
         const queryWords = query.toLowerCase().split(" ");
-  
-        const filteredGuns = result.data.flatMap(item => {
-          // Verifica se alguma palavra da query coincide com a cor
-          const colorMatches = queryWords.some(word => item.color.toLowerCase() === word);
-  
-          // Filtra as armas que têm o nome correspondente a qualquer palavra da query
-          const gunMatches = item.guns.filter(gun => 
-            queryWords.some(word => gun.name.toLowerCase().includes(word))
+
+        const filteredItems = result.data.filter((item) => {
+          const budgetMatches = item.budget === budget;
+          const skinMatches = item.guns.some((gun) =>
+            queryWords.some((word) => gun.name.toLowerCase().includes(word))
           );
-  
-          // Se a cor coincidir, retorna todas as armas da coleção
-          if (colorMatches) {
-            return item.guns; // Retorna todas as armas se a cor coincidir
-          }
-          
-          // Se não houver coincidência de cor, mas houver armas que coincidem com os nomes, retorna essas armas
-          return gunMatches.length > 0 ? gunMatches : []; // Retorna apenas as armas que coincidem com o nome
-        }).filter(gun => gun); // Filtra valores falsy para evitar undefined
-      
-        setFilteredItems(filteredGuns); // Atualiza o estado com as armas filtradas
+          const colorMatches = queryWords.some(
+            (word) => item.color.toLowerCase() === word
+          );
+          return budgetMatches && (skinMatches || colorMatches);
+        });
+
+        const allFilteredGuns = filteredItems.flatMap((item) => item.guns);
+        setFilteredGuns(allFilteredGuns);
       } else {
-        console.error('Erro na resposta:', result.message);
+        console.error("Erro na resposta:", result.message);
       }
     } catch (error) {
-      console.error('Erro ao buscar dados:', error);
+      console.error("Erro ao buscar dados:", error);
     } finally {
-      setLoading(false); // Define loading como false após a busca
+      setLoading(false);
     }
   };
-  
-  
-  
+
   const handleClear = () => {
-    setQuery('');
+    setQuery("");
     setShowResults(false);
-    setFilteredItems([]);
+    setFilteredGuns([]);
+    setBudget("medium");
+    setFilteredSkins([]);
   };
 
   const handleKeyDown = (event) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       handleSearch();
     }
   };
 
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (value.length >= 3) {
+      const filtered = availableSkins
+        .filter((skin) => skin.name.toLowerCase().includes(value.toLowerCase()))
+        .slice(0, 7);
+      setFilteredSkins(filtered);
+    } else {
+      setFilteredSkins([]);
+    }
+  };
+
+  const handleSelectSkin = (skin) => {
+    setQuery(skin.name);
+    setFilteredSkins([]);
+  };
+
   return (
     <>
-      {showResults && filteredItems.length > 0 ? (
+      {showResults && filteredGuns.length > 0 ? (
         <Button className="mt-4 ml-5 bg-blue-600" onClick={handleClear}>
           Voltar
         </Button>
       ) : null}
-      <div className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between min-h-screen p-8 gap-16 font-[family-name:var(--font-geist-sans)]`}>
+      <div
+        className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between min-h-screen gap-16 font-[family-name:var(--font-geist-sans)]`}
+      >
         {loading ? (
-          <div>Carregando...</div>
+          <div
+            role="status"
+            className="flex items-center justify-center min-h-screen"
+          >
+            <svg
+              aria-hidden="true"
+              className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+              viewBox="0 0 100 101"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                fill="currentColor"
+              />
+              <path
+                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                fill="currentFill"
+              />
+            </svg>
+            <span className="sr-only">Loading...</span>
+          </div>
         ) : showResults ? (
-          filteredItems.length > 0 ? (
-            <div className="flex flex-col items-center w-full">
+          filteredGuns.length > 0 ? (
+            <div className="flex flex-col items-center w-full p-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-                {filteredItems.map((item) => {
-                  return (
-                    <div key={item.id} className="bg-gray-900 p-5 rounded-xl">
-                      <img src={item.image} alt={item.name} className="w-full h-32 object-cover rounded-md" />
-                      <div className="text-left">
-                        <h3 className="text-2xl font-sans font-bold">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.averagePrice)}
-                        </h3>
-                        <p className="text-xs text-neutral-400">Média de preço (steam)</p>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs text-neutral-400 mt-5">{item.classType}</p>
-                        <h3 className="text-md font-sans font-bold">{item.name}</h3>
-                        <p className="text-xs text-neutral-400 mt-2">{item.condition}</p>
-                      </div>
+                {filteredGuns.map((gun) => (
+                  <div key={gun.id} className="bg-gray-900 p-5 rounded-xl">
+                    <img
+                      src={gun.image}
+                      alt={gun.name}
+                      className="w-full h-32 object-cover rounded-md"
+                    />
+                    <div className="text-left">
+                      <h3 className="text-2xl font-sans font-bold">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(gun.averagePrice ?? 0)}
+                      </h3>
+                      <p className="text-xs text-neutral-400">
+                        Média de preço (steam)
+                      </p>
                     </div>
-                  );
-                })}
+                    <div className="text-left">
+                      <p className="text-xs text-neutral-400 mt-5">
+                        {gun.classType}
+                      </p>
+                      <h3 className="text-md font-sans font-bold">
+                        {gun.name}
+                      </h3>
+                      <p className="text-xs text-neutral-400 mt-2">
+                        {gun.condition}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
-            <>
-              <div className="flex items-center flex-col justify-center w-full">
-                <Image aria-hidden src="/combofind-logo.png" alt="Globe icon" width={20} height={0} />
-              </div>
-              <div className="flex items-center flex-col justify-center w-full">
-                <p className="text-lg text-gray-500">Nenhum resultado encontrado para "{query}". Tente outra busca!</p>
-                <Button className="mt-4 ml-5 bg-blue-600" onClick={handleClear}>
-                  Voltar
-                </Button>
-              </div>
-            </>
+            <div className="flex items-center flex-col justify-center w-full h-screen gap-6">
+              <Image
+                aria-hidden
+                src="/combofind-logo.png"
+                alt="Globe icon"
+                width={20}
+                height={0}
+              />
+              <p className="text-lg text-gray-500">
+                Nenhum resultado encontrado para "{query}" e com budget "
+                {budget}". Tente outra busca!
+              </p>
+              <Button className="mt-4 ml-5 bg-blue-600" onClick={handleClear}>
+                Voltar
+              </Button>
+            </div>
           )
         ) : (
-          <main className="flex flex-col gap-8 row-start-2 items-center w-full">
-            <Image aria-hidden src="/combofind-logo.png" alt="Globe icon" width={150} height={0} />
-            <div className="flex items-center w-4/12">
+          <main className="flex flex-col gap-8 row-start-2 items-center w-full p-8">
+            <Image
+              aria-hidden
+              src="/combofind-logo.png"
+              alt="Globe icon"
+              width={150}
+              height={0}
+            />
+            <div className="relative w-4/12">
               <Input
                 type="text"
                 placeholder="Ex: Inventário Vermelho, Vermelho, Xadrez Imperial"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
               />
+              {filteredSkins.length > 0 && (
+                <ul className="absolute bg-gray-800 shadow-lg z-10 w-full max-h-60 overflow-y-auto border border-gray-300 mt-1 rounded-lg">
+                  {filteredSkins.map((skin, index) => (
+                    <li
+                      key={index}
+                      onClick={() => handleSelectSkin(skin)}
+                      className="cursor-pointer hover:bg-gray-900 p-2"
+                    >
+                      {skin.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="flex flex-col items-center gap-6">
+              <p className="text-sm text-center font-[family-name:var(--font-geist-mono)]">
+                Selecione o budget desejado:
+              </p>
+              <DotSelector onSelect={setBudget} />
             </div>
             <div className="flex gap-4 items-center flex-col sm:flex-row">
               <Button
                 className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
                 onClick={handleSearch}
               >
-                <Image className="dark:invert" src="/search-icon.svg" alt="Vercel logomark" width={20} height={20} />
+                <Image
+                  className="dark:invert"
+                  src="/search-icon.svg"
+                  alt="Vercel logomark"
+                  width={20}
+                  height={20}
+                />
                 Buscar
               </Button>
             </div>
-            <p className="text-sm text-center font-[family-name:var(--font-geist-mono)]">
-              Busque a cor ou skin desejada.
-            </p>
           </main>
         )}
-        <footer className="flex gap-6 flex-wrap items-center justify-center mt-10">
-          <a className="flex items-center gap-2 hover:underline hover:underline-offset-4" href="#" target="_blank" rel="noopener noreferrer">
-            <Image aria-hidden src="/coffee-cup.png" alt="Window icon" width={16} height={16} />
-            Me pague um café
-          </a>
-          <a className="flex items-center gap-2 hover:underline hover:underline-offset-4" href="#" target="_blank" rel="noopener noreferrer">
-            <Image aria-hidden src="/admin-icon.png" alt="Globe icon" width={16} height={16} />
-            Admin →
-          </a>
-        </footer>
+        {!loading && showResults && filteredGuns.length > 0 && (
+          <footer className="flex gap-6 flex-wrap items-center justify-center mt-10 p-8">
+            <a
+              className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Image
+                aria-hidden
+                src="/coffee-cup.png"
+                alt="Window icon"
+                width={16}
+                height={16}
+              />
+              Me pague um café
+            </a>
+            <a
+              className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Image
+                aria-hidden
+                src="/admin-icon.png"
+                alt="Globe icon"
+                width={16}
+                height={16}
+              />
+              Admin →
+            </a>
+          </footer>
+        )}
       </div>
     </>
   );
