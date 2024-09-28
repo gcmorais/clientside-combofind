@@ -126,7 +126,7 @@ export default function Home() {
         </Button>
       ) : null}
       <div
-        className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between min-h-screen gap-16 font-[family-name:var(--font-geist-sans)]`}
+        className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between h-[90vh] gap-16 font-[family-name:var(--font-geist-sans)]`}
       >
         {loading ? (
           <div
@@ -189,7 +189,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center flex-col justify-center w-full h-screen gap-6">
+            <div className="flex items-center flex-col justify-center w-full h-[95vh] gap-6">
               <Image
                 aria-hidden
                 src="/combofind-logo.png"
@@ -260,8 +260,7 @@ export default function Home() {
             </div>
           </main>
         )}
-        {!loading && showResults && filteredGuns.length > 0 && (
-          <footer className="flex gap-6 flex-wrap items-center justify-center mt-10 p-8">
+        <footer className="flex gap-6 flex-wrap items-center justify-center">
             <a
               className="flex items-center gap-2 hover:underline hover:underline-offset-4"
               href="#"
@@ -293,7 +292,6 @@ export default function Home() {
               Admin →
             </a>
           </footer>
-        )}
       </div>
     </>
   );
