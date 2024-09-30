@@ -4,6 +4,12 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { DotSelector } from "../components/ui/dotSelector";
 import { useEffect, useState } from "react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -20,10 +26,11 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [filteredGuns, setFilteredGuns] = useState([]);
-  const [budget, setBudget] = useState("medium");
+  const [budget, setBudget] = useState("Medium");
   const [loading, setLoading] = useState(false);
   const [filteredSkins, setFilteredSkins] = useState([]);
   const [availableSkins, setAvailableSkins] = useState([]);
+  const [availableCollections, setAvailableCollections] = useState([]);
 
   useEffect(() => {
     const fetchSkins = async () => {
@@ -33,6 +40,7 @@ export default function Home() {
           throw new Error("Network response was not ok");
         }
         const result = await response.json();
+
         const allGuns = result.data.flatMap((item) => item.guns);
         setAvailableSkins(allGuns);
       } catch (error) {
@@ -58,23 +66,31 @@ export default function Home() {
       }
 
       const result = await response.json();
+      setAvailableCollections(result.data);
 
       if (result.success) {
-        const queryWords = query.toLowerCase().split(" ");
+        // Normalizar a query do usuário para garantir correspondência exata
+        const normalizedQuery = query.toLowerCase().trim();
 
-        const filteredItems = result.data.filter((item) => {
-          const budgetMatches = item.budget === budget;
-          const skinMatches = item.guns.some((gun) =>
-            queryWords.some((word) => gun.name.toLowerCase().includes(word))
+        // Filtrar coleções que possuem a skin exata
+        const filteredCollections = result.data.filter((collection) => {
+          // Filtrar as guns da coleção que correspondem à pesquisa exata
+          const matchingGuns = collection.guns.filter(
+            (gun) => gun.name.toLowerCase().trim() === normalizedQuery
           );
-          const colorMatches = queryWords.some(
-            (word) => item.color.toLowerCase() === word
-          );
-          return budgetMatches && (skinMatches || colorMatches);
+          // Se houver "guns" correspondentes, manter a coleção
+          return matchingGuns.length > 0;
         });
 
-        const allFilteredGuns = filteredItems.flatMap((item) => item.guns);
-        setFilteredGuns(allFilteredGuns);
+        const filteredGuns = filteredCollections
+          .filter((collection) => collection.budget === budget) // Filtra as coleções com o budget igual ao estado
+          .flatMap((collection) => collection.guns); // Depois, extrai as armas de cada coleção filtrada
+          
+        // Agora temos as coleções filtradas
+        setFilteredGuns(
+          filteredGuns
+        );
+        setAvailableCollections(filteredCollections);
       } else {
         console.error("Erro na resposta:", result.message);
       }
@@ -89,7 +105,7 @@ export default function Home() {
     setQuery("");
     setShowResults(false);
     setFilteredGuns([]);
-    setBudget("medium");
+    setBudget("Medium");
     setFilteredSkins([]);
   };
 
@@ -104,9 +120,18 @@ export default function Home() {
     setQuery(value);
 
     if (value.length >= 3) {
+      // Filtrar skins que correspondem à query e remover duplicatas
       const filtered = availableSkins
         .filter((skin) => skin.name.toLowerCase().includes(value.toLowerCase()))
-        .slice(0, 7);
+        .reduce((uniqueSkins, currentSkin) => {
+          // Usar um Set para garantir que apenas skins únicas sejam adicionadas
+          if (!uniqueSkins.some((skin) => skin.name === currentSkin.name)) {
+            uniqueSkins.push(currentSkin);
+          }
+          return uniqueSkins;
+        }, [])
+        .slice(0, 7); // Limitar a exibição a 7 skins
+
       setFilteredSkins(filtered);
     } else {
       setFilteredSkins([]);
@@ -121,12 +146,17 @@ export default function Home() {
   return (
     <>
       {showResults && filteredGuns.length > 0 ? (
-        <Button className="mt-4 ml-5 bg-blue-600" onClick={handleClear}>
-          Voltar
-        </Button>
+        <div className="flex items-baseline gap-4">
+          <Button className="mt-4 ml-5 bg-blue-600" onClick={handleClear}>
+            Voltar
+          </Button>
+          <p className="text-md text-gray-500">
+            Resultados encontrados para: "{query}" e com budget "{budget}".
+          </p>
+        </div>
       ) : null}
       <div
-        className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between h-[90vh] gap-16 font-[family-name:var(--font-geist-sans)]`}
+        className={`${geistSans.variable} ${geistMono.variable} flex flex-col justify-between items-center h-[90vh] font-[family-name:var(--font-geist-sans)]`}
       >
         {loading ? (
           <div
@@ -153,41 +183,89 @@ export default function Home() {
           </div>
         ) : showResults ? (
           filteredGuns.length > 0 ? (
-            <div className="flex flex-col items-center w-full p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-                {filteredGuns.map((gun) => (
-                  <div key={gun.id} className="bg-gray-900 p-5 rounded-xl">
-                    <img
-                      src={gun.image}
-                      alt={gun.name}
-                      className="w-full h-32 object-cover rounded-md"
-                    />
-                    <div className="text-left">
-                      <h3 className="text-2xl font-sans font-bold">
-                        {new Intl.NumberFormat("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        }).format(gun.averagePrice ?? 0)}
-                      </h3>
-                      <p className="text-xs text-neutral-400">
-                        Média de preço (steam)
-                      </p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs text-neutral-400 mt-5">
-                        {gun.classType}
-                      </p>
-                      <h3 className="text-md font-sans font-bold">
-                        {gun.name}
-                      </h3>
-                      <p className="text-xs text-neutral-400 mt-2">
-                        {gun.condition}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+            <>
+              <div className="w-full mt-10">
+                {availableCollections.map((c) => {
+                  return (
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg border border-gray-700"
+                      key={c.id}
+                    >
+                      <AccordionItem value="item-1">
+                        {/* Accordion Trigger (Cabeçalho) */}
+                        <AccordionTrigger className="flex justify-between items-center p-4 bg-gray-700 rounded-t-lg hover:bg-gray-600 transition-colors duration-200 text-lg text-white font-semibold">
+                          {/* Nome da collection */}
+                          <span>Inventário {c.color}</span>
+
+                          {/* Ícone de seta para a direita */}
+                          <svg
+                            className="w-6 h-6 text-white transform transition-transform duration-300 group-aria-expanded:rotate-180"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </AccordionTrigger>
+
+                        {/* Accordion Content */}
+                        <AccordionContent className="bg-gray-800 p-6 rounded-b-lg transition-all duration-300 ease-in-out">
+                          <div className="flex flex-col items-center w-full">
+                            {/* Responsivo com Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+                              {c.guns.map((gun) => (
+                                <div
+                                  key={gun.id}
+                                  className="bg-gray-900 p-5 rounded-xl shadow-md transform transition-transform duration-300 hover:scale-105 hover:bg-gray-700"
+                                >
+                                  <div className="h-32 flex justify-center items-center">
+                                    <img
+                                      src={gun.image}
+                                      alt={gun.name}
+                                      className="w-full object-cover rounded-md"
+                                    />
+                                  </div>
+
+                                  <div className="mt-4 text-left">
+                                    <h3 className="text-2xl font-bold text-white">
+                                      {new Intl.NumberFormat("pt-BR", {
+                                        style: "currency",
+                                        currency: "BRL",
+                                      }).format(gun.averagePrice ?? 0)}
+                                    </h3>
+                                    <p className="text-xs text-neutral-400">
+                                      Média de preço (steam)
+                                    </p>
+                                  </div>
+                                  <div className="text-left mt-2">
+                                    <p className="text-xs text-neutral-400">
+                                      {gun.classType}
+                                    </p>
+                                    <h3 className="text-lg font-semibold text-white">
+                                      {gun.name}
+                                    </h3>
+                                    <p className="text-xs text-neutral-400 mt-1">
+                                      {gun.condition}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  );
+                })}
               </div>
-            </div>
+            </>
           ) : (
             <div className="flex items-center flex-col justify-center w-full h-[95vh] gap-6">
               <Image
@@ -261,37 +339,37 @@ export default function Home() {
           </main>
         )}
         <footer className="flex gap-6 flex-wrap items-center justify-center">
-            <a
-              className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                aria-hidden
-                src="/coffee-cup.png"
-                alt="Window icon"
-                width={16}
-                height={16}
-              />
-              Me pague um café
-            </a>
-            <a
-              className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                aria-hidden
-                src="/admin-icon.png"
-                alt="Globe icon"
-                width={16}
-                height={16}
-              />
-              Admin →
-            </a>
-          </footer>
+          <a
+            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Image
+              aria-hidden
+              src="/coffee-cup.png"
+              alt="Window icon"
+              width={16}
+              height={16}
+            />
+            Me pague um café
+          </a>
+          <a
+            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Image
+              aria-hidden
+              src="/admin-icon.png"
+              alt="Globe icon"
+              width={16}
+              height={16}
+            />
+            Admin →
+          </a>
+        </footer>
       </div>
     </>
   );
