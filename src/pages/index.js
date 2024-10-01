@@ -285,7 +285,7 @@ export default function Home() {
             </div>
           )
         ) : (
-          <main className="flex flex-col gap-8 row-start-2 items-center w-full p-8">
+          <main className="flex flex-col gap-8 row-start-2 items-center w-full p-8 mt-36">
             <Image
               aria-hidden
               src="/combofind-logo.png"

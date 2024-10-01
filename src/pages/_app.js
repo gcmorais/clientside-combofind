@@ -6,7 +6,7 @@ export default function App({ Component, pageProps }) {
     <>
       <Head>
         <title>ComboFind - Helper</title> 
-        <link rel="icon" href="https://www.favicon.cc/logo3d/366820.png" />
+        <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4205/4205819.png" />
       </Head>
       <Component {...pageProps} />
     </>
