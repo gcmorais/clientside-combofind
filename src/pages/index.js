@@ -4,6 +4,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { DotSelector } from "../components/ui/dotSelector";
 import { useEffect, useState } from "react";
+import Link from 'next/link';
 import {
   Accordion,
   AccordionContent,
@@ -85,11 +86,9 @@ export default function Home() {
         const filteredGuns = filteredCollections
           .filter((collection) => collection.budget === budget) // Filtra as coleções com o budget igual ao estado
           .flatMap((collection) => collection.guns); // Depois, extrai as armas de cada coleção filtrada
-          
+
         // Agora temos as coleções filtradas
-        setFilteredGuns(
-          filteredGuns
-        );
+        setFilteredGuns(filteredGuns);
         setAvailableCollections(filteredCollections);
       } else {
         console.error("Erro na resposta:", result.message);
@@ -354,21 +353,22 @@ export default function Home() {
             />
             Me pague um café
           </a>
-          <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              aria-hidden
-              src="/admin-icon.png"
-              alt="Globe icon"
-              width={16}
-              height={16}
-            />
-            Admin →
-          </a>
+          <Link href="/login" passHref>
+            <div
+              className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Image
+                aria-hidden
+                src="/admin-icon.png"
+                alt="Globe icon"
+                width={16}
+                height={16}
+              />
+              Admin →
+            </div>
+          </Link>
         </footer>
       </div>
     </>
