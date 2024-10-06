@@ -2,6 +2,7 @@ import * as React from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
+import { jwtDecode } from "jwt-decode";
 import {
   Accordion,
   AccordionContent,
@@ -19,15 +20,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 export default function Admin() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
+
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-
-    if (!token) {
-      // Se o token não estiver presente, redireciona para a home
+    
+    if (token) {
+      const decodedToken = jwtDecode(token);
+      setUsername(decodedToken.sub);
+    } else {
       router.push("/");
     }
   }, [router]);
@@ -36,12 +42,24 @@ export default function Admin() {
     router.push("/");
   };
 
+  const handleFinishSession = () => {
+    localStorage.removeItem("jwtToken");
+    router.push("/");
+  };
+
   return (
     <>
-      <Button className="mt-4 ml-5 bg-blue-600" onClick={handleNavigation}>
-        Voltar
-      </Button>
-      <div className="flex justify-center">
+      <div className="flex items-center justify-around">
+        <Button className="mt-4 ml-5 bg-blue-600" onClick={handleNavigation}>
+          Voltar
+        </Button>
+        <h3 className="mt-4"> Olá, bem vindo(a) {username}</h3>
+        <Button className="mt-4 ml-5 bg-red-600" onClick={handleFinishSession}>
+          Encerrar sessão
+        </Button>
+      </div>
+
+      <div className="flex justify-center mt-10">
         <Accordion
           type="single"
           collapsible
