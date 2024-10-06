@@ -56,11 +56,7 @@ export default function Home() {
     setShowResults(true);
     setLoading(true);
     try {
-      const response = await fetch(
-        `https://localhost:7233/api/Collection?search=${encodeURIComponent(
-          query
-        )}&budget=${budget}`
-      );
+      const response = await fetch(`https://localhost:7233/api/Collection?search=${encodeURIComponent(query)}&budget=${budget}`);
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -193,12 +189,8 @@ export default function Home() {
                       key={c.id}
                     >
                       <AccordionItem value="item-1">
-                        {/* Accordion Trigger (Cabeçalho) */}
                         <AccordionTrigger className="flex justify-between items-center p-4 bg-gray-700 rounded-t-lg hover:bg-gray-600 transition-colors duration-200 text-lg text-white font-semibold">
-                          {/* Nome da collection */}
                           <span>Inventário {c.color}</span>
-
-                          {/* Ícone de seta para a direita */}
                           <svg
                             className="w-6 h-6 text-white transform transition-transform duration-300 group-aria-expanded:rotate-180"
                             fill="none"
@@ -214,10 +206,8 @@ export default function Home() {
                           </svg>
                         </AccordionTrigger>
 
-                        {/* Accordion Content */}
                         <AccordionContent className="bg-gray-800 p-6 rounded-b-lg transition-all duration-300 ease-in-out">
                           <div className="flex flex-col items-center w-full">
-                            {/* Responsivo com Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                               {c.guns.map((gun) => (
                                 <div

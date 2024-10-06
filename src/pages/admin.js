@@ -10,6 +10,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import {
   Card,
   CardContent,
   CardDescription,
@@ -25,11 +34,14 @@ import { useState } from "react";
 export default function Admin() {
   const router = useRouter();
   const [username, setUsername] = useState("");
-
+  const [color, setColor] = useState("");
+  const [budget, setBudget] = useState("");
+  const [dbdata, setDbdata] = useState([]);
+  const [modalstatus, setModalstatus] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-    
+
     if (token) {
       const decodedToken = jwtDecode(token);
       setUsername(decodedToken.sub);
@@ -47,8 +59,105 @@ export default function Admin() {
     router.push("/");
   };
 
+  // Collections Submit's
+
+  const handleCreateCollectionSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para criar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://localhost:7233/api/Collection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          color: color,
+          budget: budget,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Collection criada com sucesso:", data);
+        alert("Collection criada com sucesso!");
+      } else {
+        console.error("Erro ao criar collection:", response.statusText);
+        alert("Erro ao criar collection!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao criar collection!");
+    }
+  };
+
+  const handleGetCollectionSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para criar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://localhost:7233/api/Collection", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDbdata(data);
+        console.log("Collection obtida com sucesso:", data);
+        setModalstatus(true);
+      } else {
+        console.error("Erro ao obter collection:", response.statusText);
+        alert("Erro ao obter collection!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao obter collection!");
+    }
+  };
+
   return (
     <>
+      {modalstatus && (
+        <Dialog
+          open={modalstatus}
+          onOpenChange={(open) => setModalstatus(open)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Are you absolutely sure?</DialogTitle>
+              <DialogDescription>
+                {Array.isArray(dbdata.data) ? (
+                  dbdata.data.map((item) => {
+                    console.log(item);
+                    return (
+                      <p key={item.id}>{item.color}</p> // Ajuste 'name' para a propriedade correta do seu objeto
+                    );
+                  })
+                ) : (
+                  <p>Loading data...</p> // Exibe uma mensagem caso o array não esteja disponível
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <button onClick={() => setModalstatus(false)}>Close</button>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="flex items-center justify-around">
         <Button className="mt-4 ml-5 bg-blue-600" onClick={handleNavigation}>
           Voltar
@@ -88,15 +197,25 @@ export default function Admin() {
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
                         <Label htmlFor="color">Cor</Label>
-                        <Input id="color" />
+                        <Input
+                          id="color"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="budget">Budget</Label>
-                        <Input id="budget" />
+                        <Input
+                          id="budget"
+                          value={budget}
+                          onChange={(e) => setBudget(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Salvar</Button>
+                      <Button onClick={handleCreateCollectionSubmit}>
+                        Salvar
+                      </Button>{" "}
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -149,15 +268,25 @@ export default function Admin() {
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
                         <Label htmlFor="color">Cor</Label>
-                        <Input id="color" />
+                        <Input
+                          id="color"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="budget">Budget</Label>
-                        <Input id="budget" />
+                        <Input
+                          id="budget"
+                          value={budget}
+                          onChange={(e) => setBudget(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Buscar</Button>
+                      <Button onClick={handleGetCollectionSubmit}>
+                        Buscar
+                      </Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
