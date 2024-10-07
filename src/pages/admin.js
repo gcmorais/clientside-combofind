@@ -39,6 +39,20 @@ export default function Admin() {
   const [id, setId] = useState("");
   const [dbdata, setDbdata] = useState([]);
   const [modalstatus, setModalstatus] = useState(false);
+  const [modalCollection, setModalCollection] = useState(false);
+
+  const [nameGun, setNameGun] = useState("");
+  const [type, setType] = useState("");
+  const [classGun, setClassGun] = useState("");
+  const [quality, setQuality] = useState("");
+  const [condition, setCondition] = useState("");
+  const [mainColor, setMainColor] = useState("");
+  const [averagePrice, setAveragePrice] = useState();
+  const [image, setImage] = useState("");
+  const [gunId, setGunId] = useState("");
+
+  const [collections, setCollections] = useState([]);
+  const [collectionId, setCollectionId] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -59,6 +73,10 @@ export default function Admin() {
     localStorage.removeItem("jwtToken");
     router.push("/");
   };
+
+  const handleClear = () => {
+    setCollections([]);
+  }
 
   // Collections Submit's
 
@@ -120,7 +138,45 @@ export default function Admin() {
         const data = await response.json();
         setDbdata(data);
         setModalstatus(true);
+      } else {
+        console.error("Erro ao obter collection:", response.statusText);
+        alert("Erro ao obter collection!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao obter collection!");
+    }
+  };
 
+  const handleGetAllCollectionSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para buscar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://localhost:7233/api/Collection", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+
+        // Verifica se a resposta contém dados
+        if (result.success && result.data) {
+          setCollections(result.data);
+          setModalCollection(true);
+        } else {
+          console.error("Erro: Dados de coleção não encontrados!");
+          alert("Erro ao obter dados de coleção!");
+        }
       } else {
         console.error("Erro ao obter collection:", response.statusText);
         alert("Erro ao obter collection!");
@@ -214,6 +270,156 @@ export default function Admin() {
     }
   };
 
+  // Gun Submit's
+
+  const handleCreateGunSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para criar uma arma!");
+      router.push("/login");
+      return;
+    }
+
+    if (!collectionId) {
+      alert("ID da coleção não está disponível.");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://localhost:7233/api/Guns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: nameGun,
+          type: type,
+          quality: quality,
+          class: classGun,
+          condition: condition,
+          mainColor: mainColor,
+          averagePrice: averagePrice,
+          image: image,
+          collectionData: {
+            id: collectionId,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        alert("Arma criada com sucesso!");
+        setNameGun("");
+        setType("");
+        setQuality("");
+        setClassGun("");
+        setCondition("");
+        setMainColor("");
+        setAveragePrice(0);
+        setImage("");
+      } else {
+        console.error("Erro ao criar arma:", response.statusText);
+        alert("Erro ao criar arma!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao criar arma!");
+    }
+  };
+
+  const handleUpdateGunSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para criar uma arma!");
+      router.push("/login");
+      return;
+    }
+
+    if (!gunId) {
+      alert("ID da arma não está disponível.");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://localhost:7233/api/Guns", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: gunId,
+          name: nameGun,
+          type: type,
+          quality: quality,
+          class: classGun,
+          condition: condition,
+          mainColor: mainColor,
+          averagePrice: averagePrice,
+          image: image,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Arma atualizada com sucesso!");
+        setGunId("");
+        setNameGun("");
+        setType("");
+        setQuality("");
+        setClassGun("");
+        setCondition("");
+        setMainColor("");
+        setAveragePrice(0);
+        setImage("");
+      } else {
+        console.error("Erro ao atualizar arma:", response.statusText);
+        alert("Erro ao atualizar arma!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao atualizar arma!");
+    }
+  };
+
+  const handleDeleteGunSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para deletar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    if (!gunId) {
+      alert("Nenhuma coleção selecionada para deletar!");
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://localhost:7233/api/Guns/${gunId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log("Arma deletada com sucesso.");
+        alert("Arma deletada com sucesso!");
+        setGunId("");
+      } else {
+        console.error("Erro ao deletar arma:", response.statusText);
+        alert("Erro ao deletar arma!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao deletar arma!");
+    }
+  };
+
   return (
     <>
       {modalstatus && (
@@ -277,11 +483,14 @@ export default function Admin() {
             </AccordionTrigger>
             <AccordionContent className="flex items-center justify-center mt-5">
               <Tabs defaultValue="createCollection" className="w-[90%]">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="createCollection">Criar</TabsTrigger>
                   <TabsTrigger value="updateCollection">Atualizar</TabsTrigger>
                   <TabsTrigger value="deleteCollection">Deletar</TabsTrigger>
                   <TabsTrigger value="findCollection">Buscar</TabsTrigger>
+                  <TabsTrigger value="findAllCollection">
+                    Buscar Tudo
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="createCollection">
                   <Card>
@@ -325,7 +534,7 @@ export default function Admin() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                    <div className="space-y-1">
+                      <div className="space-y-1">
                         <Label htmlFor="color">Id</Label>
                         <Input
                           id="id"
@@ -351,7 +560,9 @@ export default function Admin() {
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button onClick={handleUpdateCollectionSubmit}>Atualizar</Button>
+                      <Button onClick={handleUpdateCollectionSubmit}>
+                        Atualizar
+                      </Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -413,6 +624,90 @@ export default function Admin() {
                     </CardFooter>
                   </Card>
                 </TabsContent>
+                <TabsContent value="findAllCollection">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Buscar Todas as Collections</CardTitle>
+                      <CardDescription>
+                        Para buscar todas as collections, clique em buscar:
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {collections && collections.length > 0 ? (
+                        collections.map((collection) => {
+                          return (
+                            <div
+                              key={collection.id}
+                              className="border border-gray-200 shadow-md rounded-lg p-6 mb-4"
+                            >
+                              <h2 className="text-2xl font-bold text-blue-600 mb-2">
+                                Cor: {collection.color}
+                              </h2>
+                              <p className="text-lg text-gray-700 mb-4">
+                                Collection ID: {collection.id}
+                              </p>
+                              <p className="text-lg text-gray-700 mb-4">
+                                Budget: {collection.budget}
+                              </p>
+
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                                  Armas:
+                                </h3>
+                                {collection.guns &&
+                                collection.guns.length > 0 ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {collection.guns.map((gun) => (
+                                      <div
+                                        key={gun.id}
+                                        className="border border-gray-300 shadow-sm p-4 rounded-lg bg-white"
+                                      >
+                                        <div className="h-32 flex justify-center items-center">
+                                          <img
+                                            src={gun.image}
+                                            alt={gun.name}
+                                            className="w-full object-cover rounded-md"
+                                          />
+                                        </div>
+                                        <p className="text-lg font-medium text-gray-900">
+                                          Nome: {gun.name}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          Qualidade: {gun.quality}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          ID: {gun.id}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-500">
+                                    Sem armas nesta coleção
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p></p>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      {collections && collections.length > 0 ?(
+                        <Button onClick={handleClear}>
+                          Limpar
+                        </Button>
+                      ):(
+                        <Button onClick={handleGetAllCollectionSubmit}>
+                          Buscar
+                        </Button>
+                      )}
+                      
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
               </Tabs>
             </AccordionContent>
           </AccordionItem>
@@ -422,11 +717,10 @@ export default function Admin() {
             </AccordionTrigger>
             <AccordionContent className="flex items-center justify-center mt-5">
               <Tabs defaultValue="createGun" className="w-[90%]">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="createGun">Criar</TabsTrigger>
                   <TabsTrigger value="updateGun">Atualizar</TabsTrigger>
                   <TabsTrigger value="deleteGun">Deletar</TabsTrigger>
-                  <TabsTrigger value="findGun">Buscar</TabsTrigger>
                 </TabsList>
                 <TabsContent value="createGun">
                   <Card>
@@ -439,39 +733,70 @@ export default function Admin() {
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
                         <Label htmlFor="name">Nome</Label>
-                        <Input id="name" />
+                        <Input
+                          id="name"
+                          onChange={(e) => setNameGun(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="type">Tipo</Label>
-                        <Input id="type" />
+                        <Input
+                          id="type"
+                          onChange={(e) => setType(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="quality">Quality</Label>
-                        <Input id="quality" />
+                        <Input
+                          id="quality"
+                          onChange={(e) => setQuality(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="class">Classe</Label>
-                        <Input id="class" />
+                        <Input
+                          id="class"
+                          onChange={(e) => setClassGun(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="condition">Condição</Label>
-                        <Input id="condition" />
+                        <Input
+                          id="condition"
+                          onChange={(e) => setCondition(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="mainColor">Cor principal</Label>
-                        <Input id="mainColor" />
+                        <Input
+                          id="mainColor"
+                          onChange={(e) => setMainColor(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="averagePrice">Preço médio</Label>
-                        <Input id="averagePrice" />
+                        <Input
+                          id="averagePrice"
+                          onChange={(e) => setAveragePrice(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="image">Image</Label>
-                        <Input id="image" />
+                        <Input
+                          id="image"
+                          onChange={(e) => setImage(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="id">ID da collection</Label>
+                        <Input
+                          id="id"
+                          onChange={(e) => setCollectionId(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Salvar</Button>
+                      <Button onClick={handleCreateGunSubmit}>Salvar</Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -485,12 +810,71 @@ export default function Admin() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
-                        <Label htmlFor="id">Id</Label>
-                        <Input id="id" />
+                        <Label htmlFor="id">ID</Label>
+                        <Input
+                          id="id"
+                          onChange={(e) => setGunId(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="name">Nome</Label>
+                        <Input
+                          id="name"
+                          onChange={(e) => setNameGun(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="type">Tipo</Label>
+                        <Input
+                          id="type"
+                          onChange={(e) => setType(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="quality">Quality</Label>
+                        <Input
+                          id="quality"
+                          onChange={(e) => setQuality(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="class">Classe</Label>
+                        <Input
+                          id="class"
+                          onChange={(e) => setClassGun(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="condition">Condição</Label>
+                        <Input
+                          id="condition"
+                          onChange={(e) => setCondition(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="mainColor">Cor principal</Label>
+                        <Input
+                          id="mainColor"
+                          onChange={(e) => setMainColor(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="averagePrice">Preço médio</Label>
+                        <Input
+                          id="averagePrice"
+                          onChange={(e) => setAveragePrice(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="image">Image</Label>
+                        <Input
+                          id="image"
+                          onChange={(e) => setImage(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Atualizar</Button>
+                      <Button onClick={handleUpdateGunSubmit}>Atualizar</Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -505,30 +889,14 @@ export default function Admin() {
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
                         <Label htmlFor="id">Id</Label>
-                        <Input id="id" />
+                        <Input
+                          id="id"
+                          onChange={(e) => setGunId(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Deletar</Button>
-                    </CardFooter>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="findGun">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Buscar Arma</CardTitle>
-                      <CardDescription>
-                        Para buscar uma arma, insira o nome:
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="color">Nome</Label>
-                        <Input id="color" />
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button>Buscar</Button>
+                      <Button onClick={handleDeleteGunSubmit}>Deletar</Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
