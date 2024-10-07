@@ -39,7 +39,6 @@ export default function Admin() {
   const [id, setId] = useState("");
   const [dbdata, setDbdata] = useState([]);
   const [modalstatus, setModalstatus] = useState(false);
-  const [modalCollection, setModalCollection] = useState(false);
 
   const [nameGun, setNameGun] = useState("");
   const [type, setType] = useState("");
@@ -169,10 +168,8 @@ export default function Admin() {
       if (response.ok) {
         const result = await response.json();
 
-        // Verifica se a resposta contém dados
         if (result.success && result.data) {
           setCollections(result.data);
-          setModalCollection(true);
         } else {
           console.error("Erro: Dados de coleção não encontrados!");
           alert("Erro ao obter dados de coleção!");
