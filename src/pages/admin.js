@@ -36,6 +36,7 @@ export default function Admin() {
   const [username, setUsername] = useState("");
   const [color, setColor] = useState("");
   const [budget, setBudget] = useState("");
+  const [id, setId] = useState("");
   const [dbdata, setDbdata] = useState([]);
   const [modalstatus, setModalstatus] = useState(false);
 
@@ -84,9 +85,9 @@ export default function Admin() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log("Collection criada com sucesso:", data);
         alert("Collection criada com sucesso!");
+        setColor("");
+        setBudget("");
       } else {
         console.error("Erro ao criar collection:", response.statusText);
         alert("Erro ao criar collection!");
@@ -101,7 +102,7 @@ export default function Admin() {
     const token = localStorage.getItem("jwtToken");
 
     if (!token) {
-      alert("Você precisa estar logado para criar uma coleção!");
+      alert("Você precisa estar logado para buscar uma coleção!");
       router.push("/login");
       return;
     }
@@ -118,8 +119,8 @@ export default function Admin() {
       if (response.ok) {
         const data = await response.json();
         setDbdata(data);
-        console.log("Collection obtida com sucesso:", data);
         setModalstatus(true);
+
       } else {
         console.error("Erro ao obter collection:", response.statusText);
         alert("Erro ao obter collection!");
@@ -130,6 +131,89 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteCollectionSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para deletar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    if (!id) {
+      alert("Nenhuma coleção selecionada para deletar!");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://localhost:7233/api/Collection/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        console.log("Collection deletada com sucesso.");
+        alert("Coleção deletada com sucesso!");
+        setId("");
+      } else {
+        console.error("Erro ao deletar collection:", response.statusText);
+        alert("Erro ao deletar coleção!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao deletar coleção!");
+    }
+  };
+
+  const handleUpdateCollectionSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+
+    if (!token) {
+      alert("Você precisa estar logado para atualizar uma coleção!");
+      router.push("/login");
+      return;
+    }
+
+    if (!id) {
+      alert("Nenhuma coleção selecionada para atualizar!");
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://localhost:7233/api/Collection`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: id,
+          color: color,
+          budget: budget,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Coleção atualizada com sucesso!");
+        setId("");
+        setColor("");
+        setBudget("");
+      } else {
+        console.error("Erro ao atualizar collection:", response.statusText);
+        alert("Erro ao atualizar coleção!");
+      }
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      alert("Erro ao atualizar coleção!");
+    }
+  };
+
   return (
     <>
       {modalstatus && (
@@ -137,23 +221,36 @@ export default function Admin() {
           open={modalstatus}
           onOpenChange={(open) => setModalstatus(open)}
         >
-          <DialogContent>
+          <DialogContent className="bg-white">
             <DialogHeader>
-              <DialogTitle>Are you absolutely sure?</DialogTitle>
+              <DialogTitle className="text-slate-950">
+                Resultado da busca:
+              </DialogTitle>
               <DialogDescription>
                 {Array.isArray(dbdata.data) ? (
                   dbdata.data.map((item) => {
-                    console.log(item);
-                    return (
-                      <p key={item.id}>{item.color}</p> // Ajuste 'name' para a propriedade correta do seu objeto
-                    );
+                    if (item.color === color) {
+                      return (
+                        <div className="text-slate-950" key={item.id}>
+                          <p>ID: {item.id}</p>
+                          <p>Color: {item.color}</p>
+                          <p>Budget: {item.budget}</p>
+                        </div>
+                      );
+                    }
+                    return null;
                   })
                 ) : (
-                  <p>Loading data...</p> // Exibe uma mensagem caso o array não esteja disponível
+                  <p>Loading data...</p>
                 )}
               </DialogDescription>
             </DialogHeader>
-            <button onClick={() => setModalstatus(false)}>Close</button>
+            <button
+              className="text-blue-600"
+              onClick={() => setModalstatus(false)}
+            >
+              Close
+            </button>
           </DialogContent>
         </Dialog>
       )}
@@ -228,13 +325,33 @@ export default function Admin() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
+                    <div className="space-y-1">
+                        <Label htmlFor="color">Id</Label>
+                        <Input
+                          id="id"
+                          value={id}
+                          onChange={(e) => setId(e.target.value)}
+                        />
+                      </div>
                       <div className="space-y-1">
-                        <Label htmlFor="id">Id</Label>
-                        <Input id="id" />
+                        <Label htmlFor="color">Cor</Label>
+                        <Input
+                          id="color"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="budget">Budget</Label>
+                        <Input
+                          id="budget"
+                          value={budget}
+                          onChange={(e) => setBudget(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Atualizar</Button>
+                      <Button onClick={handleUpdateCollectionSubmit}>Atualizar</Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
@@ -248,12 +365,18 @@ export default function Admin() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="space-y-1">
-                        <Label htmlFor="id">Id</Label>
-                        <Input id="id" />
+                        <Label htmlFor="color">Id</Label>
+                        <Input
+                          id="id"
+                          value={id}
+                          onChange={(e) => setId(e.target.value)}
+                        />
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button>Deletar</Button>
+                      <Button onClick={handleDeleteCollectionSubmit}>
+                        Buscar
+                      </Button>
                     </CardFooter>
                   </Card>
                 </TabsContent>
